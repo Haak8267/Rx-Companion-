@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rx Companion</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
+  a { color: inherit; text-decoration: none; }
+
+  nav { display: flex; align-items: center; height: 56px; padding: 0 24px; background: #fff; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; right: 0; z-index: 100; }
+  nav .logo { font-weight: 700; font-size: 16px; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+  nav .logo span { background: #6366f1; color: #fff; width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; }
+  nav .links { display: flex; gap: 2px; margin-left: 36px; }
+  nav .links a { padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; color: #64748b; transition: all 0.12s; }
+  nav .links a:hover { background: #f1f5f9; color: #0f172a; }
+  nav .links a.active { background: #eef2ff; color: #4f46e5; font-weight: 600; }
+  nav .status { margin-left: auto; font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
+  nav .status .dot { width: 6px; height: 6px; border-radius: 50%; }
+  nav .status .dot.on { background: #22c55e; }
+  nav .status .dot.off { background: #ef4444; }
+
+  main { padding-top: 56px; }
+  section { display: none; }
+  section.active { display: block; }
+
+  .hero { padding: 80px 24px 60px; text-align: center; max-width: 720px; margin: 0 auto; }
+  .hero h1 { font-size: 36px; font-weight: 800; color: #0f172a; letter-spacing: -1px; line-height: 1.15; margin-bottom: 12px; }
+  .hero h1 em { font-style: normal; color: #6366f1; }
+  .hero p { font-size: 16px; color: #64748b; line-height: 1.6; margin-bottom: 28px; }
+  .hero .btn { display: inline-block; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; background: #6366f1; color: #fff; transition: background 0.12s; cursor: pointer; border: none; }
+  .hero .btn:hover { background: #4f46e5; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 960px; margin: 0 auto; padding: 0 24px 60px; }
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; transition: box-shadow 0.15s; }
+  .card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .card .ic { font-size: 20px; margin-bottom: 10px; }
+  .card h3 { font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 4px; }
+  .card p { font-size: 13px; color: #64748b; line-height: 1.5; }
+
+  .page { max-width: 800px; margin: 0 auto; padding: 40px 24px; }
+  .page h2 { font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+  .page .sub { font-size: 14px; color: #64748b; margin-bottom: 28px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table th { text-align: left; padding: 10px 12px; color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 2px solid #e2e8f0; }
+  table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+  table tr:hover td { background: #f8fafc; }
+
+  .empty { text-align: center; padding: 40px; color: #94a3b8; font-size: 14px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; }
+
+  .fab {
+    position: fixed; bottom: 24px; right: 24px; z-index: 200;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: #6366f1; color: #fff; border: none;
+    font-size: 22px; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(99,102,241,0.35);
+    transition: transform 0.12s, box-shadow 0.12s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fab:hover { transform: scale(1.06); box-shadow: 0 6px 24px rgba(99,102,241,0.45); }
+
+  .overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(15,23,42,0.4);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .overlay.open { opacity: 1; pointer-events: auto; }
+
+  .modal {
+    background: #fff; border-radius: 12px; width: 440px; max-height: 600px;
+    display: flex; flex-direction: column;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.15);
+    transform: translateY(12px); transition: transform 0.2s;
+  }
+  .overlay.open .modal { transform: translateY(0); }
+
+  .modal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid #e2e8f0;
+  }
+  .modal-head h3 { font-size: 15px; font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+  .modal-head h3 span { background: #6366f1; color: #fff; width: 22px; height: 22px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
+  .modal-close { background: none; border: none; font-size: 20px; color: #94a3b8; cursor: pointer; padding: 0; line-height: 1; }
+  .modal-close:hover { color: #475569; }
+
+  .modal-body { flex: 1; overflow-y: auto; padding: 16px 20px; min-height: 120px; display: flex; flex-direction: column; gap: 10px; }
+  .modal-body .welcome { font-size: 13px; color: #64748b; line-height: 1.6; margin-bottom: 8px; }
+  .modal-body .sugs { display: flex; flex-direction: column; gap: 6px; }
+  .modal-body .sugs button {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+    padding: 10px 14px; font-size: 13px; color: #1e293b; cursor: pointer;
+    text-align: left; transition: all 0.12s;
+  }
+  .modal-body .sugs button:hover { border-color: #6366f1; background: #eef2ff; }
+
+  .msg { padding: 10px 14px; border-radius: 8px; font-size: 14px; line-height: 1.5; max-width: 82%; }
+  .msg.user { background: #eef2ff; color: #1e293b; align-self: flex-end; border-bottom-right-radius: 2px; }
+  .msg.bot { background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; align-self: flex-start; border-bottom-left-radius: 2px; }
+  .msg .lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; display: block; }
+  .msg.user .lbl { color: #818cf8; }
+  .msg.bot .lbl { color: #6366f1; }
+
+  .modal-foot { padding: 12px 20px; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; }
+  .modal-foot input { flex: 1; padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; outline: none; }
+  .modal-foot input:focus { border-color: #6366f1; }
+  .modal-foot button { padding: 9px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; background: #6366f1; color: #fff; border: none; cursor: pointer; }
+  .modal-foot button:hover { background: #4f46e5; }
+  .modal-foot button:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo" data-nav="home"><span>R</span>Rx Companion</a>
+  <div class="links">
+    <a href="/" data-nav="home">Home</a>
+    <a href="/medications" data-nav="medications">Medications</a>
+    <a href="/patients" data-nav="patients">Patients</a>
+  </div>
+  <div class="status">
+    <span class="dot" id="health-dot"></span>
+    <span id="health-text">Checking...</span>
+  </div>
+</nav>
+
+<main>
+  <section id="page-home" class="active">
+    <div class="hero">
+      <h1>Medication care,<br><em>simplified</em></h1>
+      <p>Get instant drug information, check interactions, identify pills, and manage medication schedules — all in one place.</p>
+      <button class="btn" onclick="openChat()">Start a consultation →</button>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="ic">💊</div><h3>Drug Information</h3><p>Side effects, uses, interactions, and storage from trusted sources.</p></div>
+      <div class="card"><div class="ic">🔗</div><h3>Interaction Checker</h3><p>Check interactions between drugs, supplements, and foods.</p></div>
+      <div class="card"><div class="ic">🔍</div><h3>Pill Identification</h3><p>Identify pills by imprint, shape, color, and size.</p></div>
+      <div class="card"><div class="ic">⏰</div><h3>Medication Reminders</h3><p>Gentle, non-judgmental adherence support.</p></div>
+      <div class="card"><div class="ic">🛡️</div><h3>Safety Escalation</h3><p>Emergency guidance and urgent care contacts.</p></div>
+      <div class="card"><div class="ic">📋</div><h3>Patient Records</h3><p>Secure medication history and preferences.</p></div>
+    </div>
+  </section>
+
+  <section id="page-medications">
+    <div class="page">
+      <h2>Medication Records</h2>
+      <p class="sub">View and manage tracked medications.</p>
+      <div id="med-content"><div class="empty">Loading...</div></div>
+    </div>
+  </section>
+
+  <section id="page-patients">
+    <div class="page">
+      <h2>Patient Facts</h2>
+      <p class="sub">Stored patient information and preferences.</p>
+      <div id="facts-content"><div class="empty">Loading...</div></div>
+    </div>
+  </section>
+</main>
+
+<button class="fab" id="fab" onclick="openChat()">💬</button>
+
+<div class="overlay" id="chat-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3><span>R</span>Rx Companion</h3>
+      <button class="modal-close" onclick="closeChat()">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <div class="welcome">Welcome to RxSense! I'm here to help you learn about our healthcare technology solutions, from enterprise pharmacy benefit management to prescription savings for consumers.</div>
+      <div class="sugs">
+        <button onclick="sendSug('What is RxSense and what does it do?')">What is RxSense and what does it do?</button>
+        <button onclick="sendSug('How does SingleCare help me save on prescriptions?')">How does SingleCare help me save on prescriptions?</button>
+        <button onclick="sendSug('Can you tell me about the RxIQ enterprise platform?')">Can you tell me about the RxIQ enterprise platform?</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <input id="chat-input" placeholder="Ask your question here..." />
+      <button id="chat-send">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "";
+
+const navLinks = document.querySelectorAll("[data-nav]");
+const sections = {
+  home: document.getElementById("page-home"),
+  medications: document.getElementById("page-medications"),
+  patients: document.getElementById("page-patients"),
+};
+const overlay = document.getElementById("chat-overlay");
+const modalBody = document.getElementById("modal-body");
+const chatInput = document.getElementById("chat-input");
+const chatSend = document.getElementById("chat-send");
+const fab = document.getElementById("fab");
+let sending = false;
+
+function show(page) {
+  Object.entries(sections).forEach(([k, el]) => el.classList.toggle("active", k === page));
+  navLinks.forEach(a => a.classList.toggle("active", a.dataset.nav === page));
+}
+
+function navigate(path) {
+  history.pushState(null, "", path);
+  show(path.replace("/", "") || "home");
+  if (path === "/medications") loadMeds();
+  if (path === "/patients") loadFacts();
+}
+
+window.addEventListener("popstate", () => {
+  const p = location.pathname;
+  show(p.replace("/", "") || "home");
+  if (p === "/medications") loadMeds();
+  if (p === "/patients") loadFacts();
+});
+
+document.addEventListener("click", e => {
+  const a = e.target.closest("a[href]");
+  if (a && a.dataset.nav) { e.preventDefault(); navigate(a.getAttribute("href")); }
+});
+
+function openChat() {
+  overlay.classList.add("open");
+  chatInput.focus();
+}
+
+function closeChat() {
+  overlay.classList.remove("open");
+}
+
+overlay.addEventListener("click", e => {
+  if (e.target === overlay) closeChat();
+});
+
+async function api(path, opts = {}) {
+  const r = await fetch(`${API}${path}`, {
+    headers: { "Content-Type": "application/json" },
+    ...opts,
+  });
+  if (!r.ok) throw new Error((await r.json()).error || r.statusText);
+  return r.json();
+}
+
+async function checkHealth() {
+  try {
+    await api("/health");
+    document.getElementById("health-dot").className = "dot on";
+    document.getElementById("health-text").textContent = "Connected";
+  } catch {
+    document.getElementById("health-dot").className = "dot off";
+    document.getElementById("health-text").textContent = "Offline";
+  }
+}
+checkHealth();
+
+function addMsg(role, text) {
+  const sug = modalBody.querySelector(".welcome, .sugs");
+  if (sug) sug.remove();
+  const cls = role === "user" ? "user" : "bot";
+  const label = role === "user" ? "You" : "Rx Companion";
+  modalBody.insertAdjacentHTML("beforeend", `<div class="msg ${cls}"><span class="lbl">${label}</span>${escape(text)}</div>`);
+  modalBody.scrollTop = modalBody.scrollHeight;
+}
+
+async function sendMessage(text) {
+  if (!text || sending) return;
+  sending = true;
+  chatSend.disabled = true;
+  addMsg("user", text);
+  chatInput.value = "";
+  try {
+    const d = await api("/api/chat", { method: "POST", body: JSON.stringify({ message: text }) });
+    addMsg("bot", d.reply);
+  } catch {
+    addMsg("bot", "Sorry, I couldn't process that request.");
+  }
+  sending = false;
+  chatSend.disabled = false;
+  chatInput.focus();
+}
+
+function sendSug(text) {
+  openChat();
+  setTimeout(() => sendMessage(text), 100);
+}
+
+chatSend.addEventListener("click", () => sendMessage(chatInput.value.trim()));
+chatInput.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(chatInput.value.trim()); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && overlay.classList.contains("open")) closeChat(); });
+
+async function loadMeds() {
+  const el = document.getElementById("med-content");
+  try {
+    const d = await api("/api/medications");
+    if (!d.patients || d.patients.length === 0) { el.innerHTML = `<div class="empty">No medication records yet.</div>`; return; }
+    let html = "";
+    for (const p of d.patients) {
+      const nm = p.display_name || p.patient_id || "Unknown";
+      const rel = p.relationship_to_primary_user || "";
+      html += `<h3 style="margin:16px 0 6px;font-size:15px">${escape(nm)}${rel ? " — " + escape(rel) : ""}</h3>`;
+      const ml = p.medications || [];
+      if (ml.length === 0) { html += `<p style="color:#94a3b8;font-size:13px">No medications.</p>`; continue; }
+      html += `<table><tr><th>Name</th><th>Strength</th><th>Schedule</th><th>Purpose</th><th>Prescriber</th></tr>`;
+      for (const m of ml) html += `<tr><td>${escape(m.name||"")}</td><td>${escape(m.strength||"")}</td><td>${escape(m.schedule?.frequency||"")}</td><td>${escape(m.purpose||"")}</td><td>${escape(m.prescriber||"")}</td></tr>`;
+      html += `</table>`;
+    }
+    el.innerHTML = html;
+  } catch { el.innerHTML = `<div class="empty">Failed to load medications.</div>`; }
+}
+
+async function loadFacts() {
+  const el = document.getElementById("facts-content");
+  try {
+    const d = await api("/api/facts");
+    const data = d.facts || d.patients || d;
+    if (!data || (typeof data === "object" && Object.keys(data).length === 0 && !data.primary_user)) {
+      el.innerHTML = `<div class="empty">No patient facts stored yet.</div>`; return;
+    }
+    const pu = data.primary_user || {};
+    const pref = data.preferences || {};
+    const hh = data.household || {};
+    el.innerHTML = `
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:20px">
+        <div style="margin-bottom:20px">
+          <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:10px">Primary User</label>
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px">
+            <input id="f-role" value="${escape(pu.role||'')}" placeholder="Role" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
+            <input id="f-notes" value="${escape(pu.notes||'')}" placeholder="Notes" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
+          </div>
+        </div>
+        <div style="margin-bottom:20px">
+          <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:10px">Household</label>
+          <input id="f-household" value="${escape(JSON.stringify(hh.other_people_supported||[]))}" placeholder='["Name", "Name"]' style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
+        </div>
+        <div style="margin-bottom:20px">
+          <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:10px">Preferences</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <input id="f-reminder" value="${escape(pref.reminder_style||'')}" placeholder="Reminder style" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
+            <input id="f-units" value="${escape(pref.units||'')}" placeholder="Units" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
+            <input id="f-region" value="${escape(pref.region_for_emergency_numbers||'')}" placeholder="Region" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
+          </div>
+        </div>
+        <button onclick="saveFacts()" style="padding:8px 20px;border-radius:6px;font-size:13px;font-weight:600;background:#6366f1;color:#fff;border:none;cursor:pointer">Save</button>
+      </div>
+    `;
+  } catch { el.innerHTML = `<div class="empty">Failed to load patient facts.</div>`; }
+}
+
+async function saveFacts() {
+  const data = {
+    schema_version: "0.1",
+    note: "Durable, non-medication facts that help the agent give appropriate support.",
+    primary_user: {
+      role: document.getElementById("f-role").value,
+      notes: document.getElementById("f-notes").value,
+    },
+    household: {
+      other_people_supported: JSON.parse(document.getElementById("f-household").value || "[]"),
+    },
+    preferences: {
+      reminder_style: document.getElementById("f-reminder").value,
+      units: document.getElementById("f-units").value,
+      region_for_emergency_numbers: document.getElementById("f-region").value,
+    },
+  };
+  try {
+    await api("/api/facts", { method: "PUT", body: JSON.stringify(data) });
+    loadFacts();
+  } catch { alert("Failed to save."); }
+}
+
+function escape(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+const p = location.pathname;
+show(p.replace("/", "") || "home");
+if (p === "/medications") loadMeds();
+if (p === "/patients") loadFacts();
+</script>
+</body>
+</html>

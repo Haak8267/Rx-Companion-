@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "note": "Durable, non-medication facts that help the agent give appropriate support.",
+  "primary_user": {
+    "role": "Paracetamols ",
+    "notes": "3 times daily"
+  },
+  "household": {
+    "other_people_supported": []
+  },
+  "preferences": {
+    "reminder_style": "",
+    "units": "",
+    "region_for_emergency_numbers": ""
+  }
+}

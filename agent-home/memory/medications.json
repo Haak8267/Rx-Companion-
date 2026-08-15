@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1",
+  "note": "Each entry represents one medication currently tracked for one patient. This is health data — keep it minimal and accurate.",
+  "patients": [
+    {
+      "patient_id": "example-patient-1",
+      "display_name": "",
+      "relationship_to_primary_user": "self",
+      "medications": [
+        {
+          "name": "",
+          "generic_name": "",
+          "strength": "",
+          "form": "",
+          "schedule": {
+            "frequency": "",
+            "times": []
+          },
+          "prescriber": "",
+          "start_date": "",
+          "purpose": "",
+          "notes": ""
+        }
+      ],
+      "allergies": [],
+      "conditions_volunteered": []
+    }
+  ]
+}

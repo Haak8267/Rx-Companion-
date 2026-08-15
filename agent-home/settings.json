@@ -1,0 +1,50 @@
+{
+  "agent_name": "Rx Companion",
+  "agent_type": "pharmaceutical_support",
+  "version": "0.1.0",
+  "audience": {
+    "primary": "patients_and_caregivers",
+    "assumes_general_public": true,
+    "clarify_relationship_to_patient": true
+  },
+  "capabilities": {
+    "drug_info_lookup": true,
+    "interaction_check": true,
+    "pill_identification": true,
+    "medication_reminders": true,
+    "referral_and_escalation": true,
+    "dosing_recommendations": false,
+    "diagnosis": false
+  },
+  "safety": {
+    "escalation_required_topics": [
+      "overdose_or_suspected_overdose",
+      "severe_allergic_reaction",
+      "suicidal_ideation_or_self_harm",
+      "chest_pain_or_breathing_difficulty",
+      "pediatric_ingestion_unknown_substance"
+    ],
+    "emergency_contacts": {
+      "us_poison_control": "1-800-222-1222",
+      "us_emergency": "911",
+      "note": "Replace with local equivalents based on the user's country/region."
+    },
+    "always_recommend_professional_for": [
+      "starting_or_stopping_a_medication",
+      "adjusting_a_dose",
+      "unclear_pill_identification",
+      "conflicting_interaction_signals"
+    ],
+    "require_source_citation_for_drug_facts": true
+  },
+  "memory": {
+    "facts_file": "memory/facts.json",
+    "medications_file": "memory/medications.json",
+    "contains_sensitive_health_data": true,
+    "retention_note": "Local file storage only. No PHI/regulatory compliance (e.g., HIPAA) is implied or guaranteed by this scaffold."
+  },
+  "sessions": {
+    "directory": "sessions/",
+    "log_per_conversation": true
+  }
+}
