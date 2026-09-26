@@ -95,9 +95,11 @@ async function main() {
             next();
         }
     });
-    app.listen(PORT, () => {
-        console.log(`Rx Companion API running on http://localhost:${PORT}`);
-    });
+    if (process.env.VERCEL !== "1") {
+        app.listen(PORT, () => {
+            console.log(`Rx Companion API running on http://localhost:${PORT}`);
+        });
+    }
 }
 main().catch((err) => {
     console.error("Failed to start Rx Companion:", err);
@@ -112,4 +114,6 @@ process.on("SIGTERM", () => {
     brain.dispose();
     process.exit(0);
 });
+export default app;
+export { app };
 //# sourceMappingURL=index.js.map

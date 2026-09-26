@@ -104,9 +104,11 @@ async function main() {
     }
   });
 
-  app.listen(PORT, () => {
-    console.log(`Rx Companion API running on http://localhost:${PORT}`);
-  });
+  if (process.env.VERCEL !== "1") {
+    app.listen(PORT, () => {
+      console.log(`Rx Companion API running on http://localhost:${PORT}`);
+    });
+  }
 }
 
 main().catch((err) => {
@@ -124,3 +126,6 @@ process.on("SIGTERM", () => {
   brain.dispose();
   process.exit(0);
 });
+
+export default app;
+export { app };
