@@ -85,9 +85,9 @@ export class RxCompanion {
 
     const allMsgs = this.session.state.messages;
     for (let i = allMsgs.length - 1; i >= 0; i--) {
-      const msg = allMsgs[i];
-      if (msg.role === "assistant") {
-        if (msg.errorMessage) return msg.errorMessage;
+      const msg = allMsgs[i] as any;
+      if (msg && msg.role === "assistant") {
+        if (msg.errorMessage) return String(msg.errorMessage);
         const content = msg.content;
         if (typeof content === "string") return content;
         if (Array.isArray(content)) {

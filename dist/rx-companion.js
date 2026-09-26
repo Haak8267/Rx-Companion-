@@ -55,20 +55,24 @@ export class RxCompanion {
         if (!this.session) {
             throw new Error("RxCompanion not initialized. Call init() first.");
         }
-        let fullResponse = "";
-        const unsubscribe = this.session.subscribe((event) => {
-            if (event.type === "message_update" &&
-                event.assistantMessageEvent.type === "text_delta") {
-                fullResponse += event.assistantMessageEvent.delta;
+        await this.session.prompt(message);
+        const allMsgs = this.session.state.messages;
+        for (let i = allMsgs.length - 1; i >= 0; i--) {
+            const msg = allMsgs[i];
+            if (msg && msg.role === "assistant") {
+                if (msg.errorMessage)
+                    return String(msg.errorMessage);
+                const content = msg.content;
+                if (typeof content === "string")
+                    return content;
+                if (Array.isArray(content)) {
+                    const texts = content.filter((c) => c.type === "text").map((c) => c.text).join("");
+                    if (texts)
+                        return texts;
+                }
             }
-        });
-        try {
-            await this.session.prompt(message);
         }
-        finally {
-            unsubscribe();
-        }
-        return fullResponse;
+        return "";
     }
     async getMedications() {
         const filePath = join(this.memoryDir, "medications.json");

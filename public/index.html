@@ -96,9 +96,10 @@
   }
   .modal-body .sugs button:hover { border-color: #6366f1; background: #eef2ff; }
 
-  .msg { padding: 10px 14px; border-radius: 8px; font-size: 14px; line-height: 1.5; max-width: 82%; }
+  .msg { padding: 10px 14px; border-radius: 8px; font-size: 14px; line-height: 1.5; max-width: 85%; white-space: pre-wrap; word-break: break-word; }
   .msg.user { background: #eef2ff; color: #1e293b; align-self: flex-end; border-bottom-right-radius: 2px; }
   .msg.bot { background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; align-self: flex-start; border-bottom-left-radius: 2px; }
+  .msg.typing { color: #64748b; font-style: italic; background: #f8fafc; border: 1px dashed #cbd5e1; }
   .msg .lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; display: block; }
   .msg.user .lbl { color: #818cf8; }
   .msg.bot .lbl { color: #6366f1; }
@@ -117,6 +118,7 @@
   <a href="/" class="logo" data-nav="home"><span>R</span>Rx Companion</a>
   <div class="links">
     <a href="/" data-nav="home">Home</a>
+    <a href="#" onclick="openChat(); return false;" id="nav-chat-link">Chat 💬</a>
     <a href="/medications" data-nav="medications">Medications</a>
     <a href="/patients" data-nav="patients">Patients</a>
   </div>
@@ -160,7 +162,7 @@
   </section>
 </main>
 
-<button class="fab" id="fab" onclick="openChat()">💬</button>
+<button class="fab" id="fab" onclick="openChat()" title="Chat with Rx Companion">💬</button>
 
 <div class="overlay" id="chat-overlay">
   <div class="modal">
@@ -169,11 +171,11 @@
       <button class="modal-close" onclick="closeChat()">&times;</button>
     </div>
     <div class="modal-body" id="modal-body">
-      <div class="welcome">Welcome to RxSense! I'm here to help you learn about our healthcare technology solutions, from enterprise pharmacy benefit management to prescription savings for consumers.</div>
+      <div class="welcome">Welcome to Rx Companion! I'm here to assist you with medication information, interactions, pill identification, reminders, and patient health profiles.</div>
       <div class="sugs">
-        <button onclick="sendSug('What is RxSense and what does it do?')">What is RxSense and what does it do?</button>
-        <button onclick="sendSug('How does SingleCare help me save on prescriptions?')">How does SingleCare help me save on prescriptions?</button>
-        <button onclick="sendSug('Can you tell me about the RxIQ enterprise platform?')">Can you tell me about the RxIQ enterprise platform?</button>
+        <button onclick="sendSug('Can I take ibuprofen with lisinopril?')">Can I take ibuprofen with lisinopril?</button>
+        <button onclick="sendSug('What are common side effects of metformin?')">What are common side effects of metformin?</button>
+        <button onclick="sendSug('What should I do if I missed a dose of my medication?')">What should I do if I missed a dose of my medication?</button>
       </div>
     </div>
     <div class="modal-foot">
@@ -272,10 +274,20 @@ async function sendMessage(text) {
   chatSend.disabled = true;
   addMsg("user", text);
   chatInput.value = "";
+
+  const typingEl = document.createElement("div");
+  typingEl.className = "msg bot typing";
+  typingEl.id = "typing-indicator";
+  typingEl.innerHTML = `<span class="lbl">Rx Companion</span>Consulting resources...`;
+  modalBody.appendChild(typingEl);
+  modalBody.scrollTop = modalBody.scrollHeight;
+
   try {
     const d = await api("/api/chat", { method: "POST", body: JSON.stringify({ message: text }) });
+    typingEl.remove();
     addMsg("bot", d.reply);
   } catch {
+    typingEl.remove();
     addMsg("bot", "Sorry, I couldn't process that request.");
   }
   sending = false;
@@ -299,17 +311,49 @@ async function loadMeds() {
     if (!d.patients || d.patients.length === 0) { el.innerHTML = `<div class="empty">No medication records yet.</div>`; return; }
     let html = "";
     for (const p of d.patients) {
-      const nm = p.display_name || p.patient_id || "Unknown";
-      const rel = p.relationship_to_primary_user || "";
-      html += `<h3 style="margin:16px 0 6px;font-size:15px">${escape(nm)}${rel ? " — " + escape(rel) : ""}</h3>`;
-      const ml = p.medications || [];
-      if (ml.length === 0) { html += `<p style="color:#94a3b8;font-size:13px">No medications.</p>`; continue; }
-      html += `<table><tr><th>Name</th><th>Strength</th><th>Schedule</th><th>Purpose</th><th>Prescriber</th></tr>`;
-      for (const m of ml) html += `<tr><td>${escape(m.name||"")}</td><td>${escape(m.strength||"")}</td><td>${escape(m.schedule?.frequency||"")}</td><td>${escape(m.purpose||"")}</td><td>${escape(m.prescriber||"")}</td></tr>`;
-      html += `</table>`;
+      const nm = p.display_name || p.patient_id || "Patient";
+      const rel = p.relationship_to_primary_user ? `(${escape(p.relationship_to_primary_user)})` : "";
+      html += `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:16px">`;
+      html += `<h3 style="margin-bottom:12px;font-size:15px;font-weight:600;color:#0f172a">${escape(nm)} <span style="font-size:13px;font-weight:normal;color:#64748b">${rel}</span></h3>`;
+      const ml = (p.medications || []).filter(m => m.name || m.strength || m.purpose);
+      if (ml.length === 0) {
+        html += `<p style="color:#94a3b8;font-size:13px">No active medications listed.</p>`;
+      } else {
+        html += `<table><tr><th>Name</th><th>Strength</th><th>Schedule</th><th>Purpose</th><th>Prescriber</th></tr>`;
+        for (const m of ml) html += `<tr><td><strong>${escape(m.name||"-")}</strong></td><td>${escape(m.strength||"-")}</td><td>${escape(m.schedule?.frequency||"-")}</td><td>${escape(m.purpose||"-")}</td><td>${escape(m.prescriber||"-")}</td></tr>`;
+        html += `</table>`;
+      }
+      html += `</div>`;
     }
+
+    html += `
+      <details style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-top:16px">
+        <summary style="cursor:pointer;font-weight:600;font-size:13px;color:#4f46e5;user-select:none">⚙️ Edit Medication Records (JSON)</summary>
+        <div style="margin-top:12px">
+          <textarea id="meds-json-editor" style="width:100%;height:180px;font-family:monospace;font-size:12px;padding:10px;border:1px solid #e2e8f0;border-radius:6px;outline:none">${escape(JSON.stringify(d, null, 2))}</textarea>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
+            <button onclick="saveMedsJson()" style="padding:8px 20px;border-radius:6px;font-size:13px;font-weight:600;background:#6366f1;color:#fff;border:none;cursor:pointer">Save Changes</button>
+            <span id="meds-save-status" style="font-size:13px;color:#16a34a"></span>
+          </div>
+        </div>
+      </details>
+    `;
+
     el.innerHTML = html;
   } catch { el.innerHTML = `<div class="empty">Failed to load medications.</div>`; }
+}
+
+async function saveMedsJson() {
+  const statusEl = document.getElementById("meds-save-status");
+  try {
+    const raw = document.getElementById("meds-json-editor").value;
+    const parsed = JSON.parse(raw);
+    await api("/api/medications", { method: "PUT", body: JSON.stringify(parsed) });
+    if (statusEl) { statusEl.textContent = "✓ Saved successfully"; setTimeout(() => { statusEl.textContent = ""; }, 3000); }
+    loadMeds();
+  } catch (err) {
+    alert("Invalid JSON or save failed: " + (err.message || err));
+  }
 }
 
 async function loadFacts() {
@@ -323,34 +367,48 @@ async function loadFacts() {
     const pu = data.primary_user || {};
     const pref = data.preferences || {};
     const hh = data.household || {};
+    const hhList = Array.isArray(hh.other_people_supported) ? hh.other_people_supported.join(", ") : "";
+
     el.innerHTML = `
       <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:20px">
         <div style="margin-bottom:20px">
           <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:10px">Primary User</label>
           <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px">
-            <input id="f-role" value="${escape(pu.role||'')}" placeholder="Role" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
-            <input id="f-notes" value="${escape(pu.notes||'')}" placeholder="Notes" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
+            <input id="f-role" value="${escape(pu.role||'')}" placeholder="Role (e.g. Patient, Caregiver)" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
+            <input id="f-notes" value="${escape(pu.notes||'')}" placeholder="Notes & Medical Context" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
           </div>
         </div>
         <div style="margin-bottom:20px">
-          <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:10px">Household</label>
-          <input id="f-household" value="${escape(JSON.stringify(hh.other_people_supported||[]))}" placeholder='["Name", "Name"]' style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
+          <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:10px">Household Members</label>
+          <input id="f-household" value="${escape(hhList)}" placeholder="e.g. Mother, Spouse (comma-separated)" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
         </div>
         <div style="margin-bottom:20px">
           <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:10px">Preferences</label>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-            <input id="f-reminder" value="${escape(pref.reminder_style||'')}" placeholder="Reminder style" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
-            <input id="f-units" value="${escape(pref.units||'')}" placeholder="Units" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
-            <input id="f-region" value="${escape(pref.region_for_emergency_numbers||'')}" placeholder="Region" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
+            <input id="f-reminder" value="${escape(pref.reminder_style||'')}" placeholder="Reminder style (gentle/firm)" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
+            <input id="f-units" value="${escape(pref.units||'')}" placeholder="Units (mg, ml, etc.)" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
+            <input id="f-region" value="${escape(pref.region_for_emergency_numbers||'')}" placeholder="Region (US, UK, EU)" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none">
           </div>
         </div>
-        <button onclick="saveFacts()" style="padding:8px 20px;border-radius:6px;font-size:13px;font-weight:600;background:#6366f1;color:#fff;border:none;cursor:pointer">Save</button>
+        <div style="display:flex;align-items:center;gap:12px">
+          <button onclick="saveFacts()" style="padding:8px 20px;border-radius:6px;font-size:13px;font-weight:600;background:#6366f1;color:#fff;border:none;cursor:pointer">Save Facts</button>
+          <span id="facts-save-status" style="font-size:13px;color:#16a34a"></span>
+        </div>
       </div>
     `;
   } catch { el.innerHTML = `<div class="empty">Failed to load patient facts.</div>`; }
 }
 
 async function saveFacts() {
+  const statusEl = document.getElementById("facts-save-status");
+  let hhRaw = document.getElementById("f-household").value.trim();
+  let hhArray = [];
+  if (hhRaw.startsWith("[") && hhRaw.endsWith("]")) {
+    try { hhArray = JSON.parse(hhRaw); } catch { hhArray = hhRaw.slice(1, -1).split(",").map(s => s.trim().replace(/^["']|["']$/g, "")).filter(Boolean); }
+  } else if (hhRaw) {
+    hhArray = hhRaw.split(",").map(s => s.trim()).filter(Boolean);
+  }
+
   const data = {
     schema_version: "0.1",
     note: "Durable, non-medication facts that help the agent give appropriate support.",
@@ -359,7 +417,7 @@ async function saveFacts() {
       notes: document.getElementById("f-notes").value,
     },
     household: {
-      other_people_supported: JSON.parse(document.getElementById("f-household").value || "[]"),
+      other_people_supported: hhArray,
     },
     preferences: {
       reminder_style: document.getElementById("f-reminder").value,
@@ -369,6 +427,7 @@ async function saveFacts() {
   };
   try {
     await api("/api/facts", { method: "PUT", body: JSON.stringify(data) });
+    if (statusEl) { statusEl.textContent = "✓ Saved successfully"; setTimeout(() => { statusEl.textContent = ""; }, 3000); }
     loadFacts();
   } catch { alert("Failed to save."); }
 }
