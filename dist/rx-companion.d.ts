@@ -10,6 +10,7 @@ export declare class RxCompanion {
     private provider;
     private model;
     private memoryDir;
+    private isServerless;
     constructor(config: RxCompanionConfig);
     init(): Promise<void>;
     private loadSettingsManager;
